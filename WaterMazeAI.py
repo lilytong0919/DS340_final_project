@@ -9,6 +9,7 @@ import numpy as np
 import math
 import random
 from enum import Enum
+import copy
 
 pygame.init()
 
@@ -26,20 +27,25 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLACK = (0,0,0) # potentially plot a trajectory
 GRAY = (100,100,100)
+BLUE = (0,70,120)
 
 # unchanging part of the game
 FPS = 60
 PLATFORM = [300,350]
 PLATFORM_RADIUS = 50
 WIDTH = 800
-HEIGHT = 600
-MIN_W, MAX_W, MIN_H, MAX_H = 20, 780, 20, 580
-MAX_SPEED = 300
+HEIGHT = 800
+POOL_CENTER = [400,400]
+POOL_RADIUS = 375
+MAX_SPEED = 400
 FONT = pygame.font.SysFont('arial', 20)
+
+# limit game length
+MAX_EPISODE_TIME = 30
 
 # the game class
 class WaterMazeAI:
-    def __init__(self, w = 800, h = 600):
+    def __init__(self, w = WIDTH, h = HEIGHT):
         self.width = w
         self.height = h
         # set up the display window?
@@ -55,20 +61,26 @@ class WaterMazeAI:
         # upon reset the game, we should place the 'mouse' at a random location
         # facing a random direction
         self.speed = 0 
-        self.position = [random.randint(MIN_W,MAX_W),
-                         random.randint(MIN_H,MAX_H)]
+        self.position = [0,0]
+        while not self.is_in_circle(POOL_CENTER,POOL_RADIUS,self.position):
+            self.position = [random.randint(0,WIDTH),
+                             random.randint(0,HEIGHT)]
+            
         self.orientation = random.randint(0,360) # orientation in degree?
         self.energy = 100
         self.time_spent = 0
         # consider adding a visibility range
     
+    def is_in_circle(self,center,radius,position):
+        result = False
+        dist2center = np.linalg.norm(np.array(center) - np.array(position))
+        if dist2center < radius:
+            result = True
+        return result
+    
     def is_on_platform(self):
         # check if mice is on plat form
-        result = False
-        dist2platform = np.linalg.norm(np.array(self.platform) - np.array(self.position))
-        if dist2platform < PLATFORM_RADIUS:
-            result = True       
-        return result
+        return self.is_in_circle(PLATFORM,PLATFORM_RADIUS,self.position)
         
     def is_game_over(self):
         result = False
@@ -76,7 +88,7 @@ class WaterMazeAI:
             result = True
         elif self.energy <= 0:
             result = True
-        elif self.time_spent >= 60: # Each trial 1 min max
+        elif self.time_spent >= MAX_EPISODE_TIME: # Each trial 1 min max
             result = True
         return result
         
@@ -92,7 +104,7 @@ class WaterMazeAI:
         self.move(action)
         # 3 check if game is over
         if self.is_game_over():
-            reward = -20 # a small punishment for not failed the task
+            reward = -20 # a small punishment for failing the task
             if self.is_on_platform():
                 reward = 100 + self.energy # Reward saving energy
             game_over = True            
@@ -114,12 +126,13 @@ class WaterMazeAI:
         # update the display?
         self.display.fill(WHITE)        
         # Platform should be invisible to the AI, but lets plot it for now
-        self.draw_platform()
+        pygame.draw.circle(self.display, BLUE, POOL_CENTER, POOL_RADIUS + 20)
+        pygame.draw.circle(self.display, GRAY, PLATFORM, PLATFORM_RADIUS)
         
         # text information here:
         text_lines = [FONT.render("Energy: " + str(self.energy), True, BLACK),
                       FONT.render("Time_spent: " + str(self.time_spent), True, BLACK)]
-        text_positions = [[0, 0],[0, 30]]
+        text_positions = [[0, 0],[0, 20]]
         for i in range(len(text_lines)):
             self.display.blit(text_lines[i], text_positions[i])
         
@@ -141,15 +154,12 @@ class WaterMazeAI:
 
         rotated_vertices = vertices.dot(rotation_matrix) 
         # Translate the vertices based on the position
-        translated_vertices = rotated_vertices + self.position.reshape((1, 2))
+        translated_vertices = rotated_vertices + np.reshape(self.position,(1, 2))
 
         # Draw the arrow on the screen
         pygame.draw.polygon(self.display, RED, translated_vertices)
 
         
-    def draw_platform(self):
-        pygame.draw.circle(self.display, GRAY, self.platform, PLATFORM_RADIUS)
-#        self.update_ui()
 
     def move(self,action):
         # make changes to the 'mouse' position and orientation given action
@@ -181,20 +191,22 @@ class WaterMazeAI:
         # I might be better off computing speed with time considered, as 
         # seems to change with frame rate.
         change_position = self.speed * direction * time_elapsed/1000
-        self.position += change_position
-        self.energy -= np.linalg.norm(change_position)*0.05
+        # let the 'mouse' stay where it was if attempt to move into the wall
+        # update only the component to position where movement is allowed
+        move_x = copy.deepcopy(self.position)
+        move_x[0] += change_position[0]
+        move_y = copy.deepcopy(self.position)
+        move_y[1] += change_position[1]
+        if self.is_in_circle(POOL_CENTER,POOL_RADIUS, (self.position+change_position)):
+            self.position += change_position
+        elif self.is_in_circle(POOL_CENTER,POOL_RADIUS, move_x):
+            self.position = move_x
+        elif self.is_in_circle(POOL_CENTER,POOL_RADIUS, move_x):
+            self.position = move_y
+        self.energy -= np.linalg.norm(change_position)*0.005
         self.time_spent += time_elapsed/1000 #(convert ms to s)
         # energy reduce as a function of distance moved
         
-        # let the 'mouse' stay where it was if attempt to move into the wall
-        if self.position[0] < MIN_W:
-            self.position[0] = MIN_W
-        elif self.position[0] > self.width - MIN_W:
-            self.position[0] = self.width - MIN_W
-        if self.position[1] < MIN_H:
-            self.position[1] = MIN_H
-        elif self.position[1] > self.height - MIN_H:
-            self.position[1] = self.height - MIN_H
 
         
 # import time
