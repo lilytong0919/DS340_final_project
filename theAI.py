@@ -15,8 +15,10 @@ from theModel import Linear_QNet, QTrainer
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.01
-EPOCH = 5
+LR = 0.005
+EPOCH = 50
+EPS = 0.9
+GAMMA = 0.9
 
 
 # Now lets create my stupid kid.
@@ -24,11 +26,11 @@ class Agent:
     def __init__(self):
         self.n_games = 1 # avoid division by 0
         self.n_wins = 1 # avoid division by 0
-        self.epsilon = 1
-        self.gamma = 0.9
+        self.epislon = EPS
+        self.gamma = GAMMA
         self.memory = deque(maxlen = MAX_MEMORY) # what is this even for??
-        self.model = Linear_QNet(3,256,5)
-        self.trainer = QTrainer(self.model, lr=LR, gamma = self.gamma)
+        self.model = Linear_QNet(3,5)
+        self.trainer = QTrainer(self.model, lr=LR, gamma = GAMMA)
         
     def get_state(self,game):
         state = []
@@ -49,27 +51,23 @@ class Agent:
 
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
-        #for state, action, reward, nexrt_state, done in mini_sample:
-        #    self.trainer.train_step(state, action, reward, next_state, done)
+
 
     def train_short_memory(self, state, action, reward, next_state, done):
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = (1 - self.n_wins/self.n_games)/2 # I don't want it to be too large either, this way the max epislon is .5
-        final_move = [0,0,0,0,0]
+        self.epsilon = EPS - self.n_wins/self.n_games 
+        # let the model do a perdiction anyway, and overwrite it if EPS takeover
+        state0 = torch.tensor(state, dtype=torch.float)
+        prediction = self.model(state0)
+        model_move = torch.argmax(prediction).item()   
+        final_move = model_move
         if random.random() < self.epsilon:
-            move = random.randint(0, 4)
-            final_move[move] = 1
-        else:
-            state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model(state0)
-            move = torch.argmax(prediction).item()
-            final_move[move] = 1
-       #     print(final_move)
+            final_move = random.randint(0, 4)
 
-        return final_move
+        return model_move, final_move
 
 
 def train():
@@ -82,10 +80,10 @@ def train():
         state_old = agent.get_state(game)
 
         # get move
-        final_move = agent.get_action(state_old)
+        model_move, final_move = agent.get_action(state_old)
+
         # perform move and get new state
-        action = int(np.nonzero(final_move)[0]) 
-        reward, done = game.play_step(action)
+        reward, done = game.play_step(final_move)
         state_new = agent.get_state(game)
         # train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
@@ -119,16 +117,15 @@ def model_play():
     while True:
         # get old state
         state_old = agent.get_state(game)
-        print(state_old)
         # get move
-        final_move = agent.get_action(state_old)
+        model_move, final_move = agent.get_action(state_old)
+        print(model_move,final_move)
         # perform move and get new state
-        action = int(np.nonzero(final_move)[0]) 
-        reward, done = game.play_step(action)
+        reward, done = game.play_step(final_move)
 #        state_new = agent.get_state(game)
         if done:
             break
 
 if __name__ == '__main__':
     train()
-    model_play()
+    #model_play()

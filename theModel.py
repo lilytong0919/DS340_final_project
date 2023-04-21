@@ -3,6 +3,11 @@
 # I may be better off swicthing to Keras, 
 # see example here: https://keras.io/examples/rl/deep_q_network_breakout/
 # and a example with pygame: https://github.com/morganbarber/Pong-Deep-Learning/blob/main/main.py
+
+# If keep going with pytorch, here is another tutorial
+# see: https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
+
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,15 +15,17 @@ import torch.nn.functional as F
 import os
 
 class Linear_QNet(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self,n_observation,n_action):
         super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, output_size)
-
+        self.layer1 = nn.Linear(n_observation, 128)
+        self.layer2 = nn.Linear(128,128)
+        self.layer3 = nn.Linear(128, n_action)
+        
+    # make perdiction?
     def forward(self, x):
-        x = F.sigmoid(self.linear1(x))
-        x = self.linear2(x)
-        return x
+        x = F.sigmoid(self.layer1(x))
+        x = F.relu(self.layer2(x))
+        return self.layer3(x)
 
     def save(self, file_name='model.pth'):
         model_folder_path = './model'
