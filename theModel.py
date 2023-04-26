@@ -18,12 +18,12 @@ class Linear_QNet(nn.Module):
     def __init__(self,n_observation,n_action):
         super().__init__()
         self.layer1 = nn.Linear(n_observation, 128)
-        self.layer2 = nn.Linear(128,128)
-        self.layer3 = nn.Linear(128, n_action)
+        self.layer2 = nn.Linear(128,256)
+        self.layer3 = nn.Linear(256, n_action)
         
     # make perdiction?
     def forward(self, x):
-        x = F.sigmoid(self.layer1(x))
+        x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         return self.layer3(x)
 
@@ -67,6 +67,8 @@ class QTrainer:
             Q_new = reward[idx]
             if not done[idx]:
                 Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+                # Maybe I should check if the loss-function have a problem, see information here
+                # https://medium.com/intro-to-artificial-intelligence/deep-q-network-dqn-applying-neural-network-as-a-functional-approximation-in-q-learning-6ffe3b0a9062
 
             target[idx][torch.argmax(action[idx]).item()] = Q_new
     
@@ -78,4 +80,5 @@ class QTrainer:
         loss.backward()
 
         self.optimizer.step()
+        
 
