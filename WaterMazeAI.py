@@ -18,6 +18,12 @@ class MOVES:
     COUNTER_CLOCKWISE = 2
     FASTER = 3
     SLOWER = 4
+
+class simpleMOVES:
+    UP = 0
+    DOWN = 1
+    RIGHT = 2
+    LEFT = 3
     
 
 # Set RGB Color needed
@@ -34,11 +40,12 @@ PLATFORM_RADIUS = 60
 WIDTH = 600
 POOL_RADIUS = WIDTH/2 - 25
 POOL_CENTER = [WIDTH/2, WIDTH/2]
-MAX_SPEED = 400
+MAX_SPEED = 500
 RENDER = False
+SIMPLE = False
 
 # limit game length
-MAX_EPISODE_TIME = 5 # time in second, simulated time of each trial
+MAX_EPISODE_TIME = 15 # time in second, simulated time of each trial
 EN_SCALE = 0.005 # larger then energy spend faster
 MS_ITERATION = 15 # time elapse per iteration if no rendering
 
@@ -48,6 +55,7 @@ class WaterMazeAI:
         self.width = w
         self.height = h
         self.render = RENDER
+        self.simple = SIMPLE
         # set up the display window?
         if self.render:
             pygame.init()
@@ -63,7 +71,7 @@ class WaterMazeAI:
     def reset(self):
         # upon reset the game, we should place the 'mouse' at a random location
         # facing a random direction
-        self.speed = 50 
+        self.speed = 100
         self.position = [200,200]
         self.iteration = 0
         self.trajectory = [] # *math.ceil(MS_ITERATION*1000/MAX_EPISODE_TIME) # keep track of past positions, for ploting
@@ -101,7 +109,9 @@ class WaterMazeAI:
     def play_step(self,action):
         reward = 0
         game_over = False
-        # 1 collect input I don't know what this is for, but let just put it in and see 
+        # 1 collect input I don't know what this is for, but let just put it in and see
+        # the training seems to need action as an bool array, here I change it back to number
+        action = np.argmax(action)
         if self.render:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -110,7 +120,12 @@ class WaterMazeAI:
         
         # prev_position = np.array(self.position)
         # 2 move
-        self.move(action)    
+        if self.simple:
+            #print('hi')
+            self.move_simple(action)
+        else:
+            #print('hihi')
+            self.move(action)    
         # I hate shallow copy! its always the shallow copy that let me sit 
         # there debug for 2 hour without figuring out why!
         self.trajectory.append(copy.deepcopy(self.position))
@@ -118,13 +133,13 @@ class WaterMazeAI:
         if self.is_game_over():
             reward = -20 # punish if not on platform at the end
             if self.is_on_platform():
-                reward = 100 + self.energy + (MAX_EPISODE_TIME - self.time_spent) # Reward saving energy and reaching goal fast
+                reward = 200 + self.energy + (MAX_EPISODE_TIME - self.time_spent) # Reward saving energy and reaching goal fast
             game_over = True           
         else:
-            #reward = 0
+            reward = 0
             # add a reward for actively moving and see what happens
             # expected movement - actually moved.
-            reward = 100 - np.linalg.norm((self.platform-np.array(self.position)))
+            # reward = 50 - np.linalg.norm((self.platform-np.array(self.position)))
             #print(reward)
         # 4 update ui and clock
         if self.render:
@@ -173,7 +188,32 @@ class WaterMazeAI:
         # Draw the arrow on the screen
         pygame.draw.polygon(self.display, RED, translated_vertices)
 
+    def move_simple(self,action):
+        # try add this function that takes a simpler version of control
+        #      just moving up,down,left,right and see if thing will be easier
+        #      with this
+        prev_position = copy.deepcopy(self.position)
+        if action == simpleMOVES.UP:
+            self.position[1] -= 5
+        elif action == simpleMOVES.DOWN:
+            self.position[1] += 5 # I remember pygame has a reversed y-axis
+        elif action == simpleMOVES.LEFT:
+            self.position[0] -= 5
+        elif action == simpleMOVES.RIGHT:
+            self.position[0] += 5
         
+        # check if moved out of bound
+        if not self.is_in_circle(POOL_CENTER,POOL_RADIUS, self.position):
+            self.position = prev_position
+        # update time spent
+        if self.render:
+            time_elapsed = self.clock.tick(FPS)
+        else:
+            time_elapsed = MS_ITERATION
+        # update energy spent
+        self.energy -= 5*EN_SCALE
+        self.time_spent += time_elapsed/1000 #(convert ms to s)
+
 
     def move(self,action):
         # make changes to the 'mouse' position and orientation given action
@@ -236,6 +276,9 @@ class WaterMazeAI:
         # state.append(self.energy/100) # energy spent on task
         # state.append(self.platform[0]/WIDTH)
         # state.append(self.platform[1]/WIDTH)
+        dist_to_target = np.linalg.norm(np.array(self.position)-np.array(self.platform))
+        state.append(dist_to_target)
+       # angle_to_target = 
         return state
 
         

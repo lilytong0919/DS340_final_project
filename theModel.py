@@ -52,7 +52,7 @@ class QTrainer:
         # (n, x)
 
         if len(state.shape) == 1:
-            # (1, x)
+            # this step is just changing things to row vectors
             state = torch.unsqueeze(state, 0)
             next_state = torch.unsqueeze(next_state, 0)
             action = torch.unsqueeze(action, 0)
@@ -67,11 +67,12 @@ class QTrainer:
             Q_new = reward[idx]
             if not done[idx]:
                 Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
-                # Maybe I should check if the loss-function have a problem, see information here
+                # TODO: Maybe I should check if the loss-function have a problem, see information here
                 # https://medium.com/intro-to-artificial-intelligence/deep-q-network-dqn-applying-neural-network-as-a-functional-approximation-in-q-learning-6ffe3b0a9062
-
             target[idx][torch.argmax(action[idx]).item()] = Q_new
-    
+            # print(torch.argmax(action[idx]).item())
+        # print("predict",pred,pred.size())
+        # print("target", target,target.size())
         # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
         # pred.clone()
         # preds[argmax(action)] = Q_new
