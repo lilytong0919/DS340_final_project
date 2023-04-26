@@ -38,7 +38,7 @@ MAX_SPEED = 400
 RENDER = False
 
 # limit game length
-MAX_EPISODE_TIME = 15 # time in second, simulated time of each trial
+MAX_EPISODE_TIME = 5 # time in second, simulated time of each trial
 EN_SCALE = 0.005 # larger then energy spend faster
 MS_ITERATION = 15 # time elapse per iteration if no rendering
 
@@ -231,11 +231,11 @@ class WaterMazeAI:
         state.append(self.orientation/360) # angle
         state.append(self.position[0]/WIDTH)
         state.append(self.position[1]/WIDTH) # position
-        state.append(self.speed/MAX_SPEED)
+        # state.append(self.speed/MAX_SPEED)
         # state.append(self.time_spent/MAX_EPISODE_TIME) # time spent on task
         # state.append(self.energy/100) # energy spent on task
-        state.append(self.platform[0]/WIDTH)
-        state.append(self.platform[1]/WIDTH)
+        # state.append(self.platform[0]/WIDTH)
+        # state.append(self.platform[1]/WIDTH)
         return state
 
         

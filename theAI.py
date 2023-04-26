@@ -8,6 +8,7 @@
 import random
 import time
 import numpy as np
+import os.path
 import torch
 from collections import deque # some sort of data structure, if I can copy then why not
 # the improtant ones
@@ -52,6 +53,7 @@ class Agent:
 
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         loss = self.trainer.train_step(states, actions, rewards, next_states, dones)
+        print(states)
         return loss
 
     def train_short_memory(self, state, action, reward, next_state, done):
@@ -118,10 +120,13 @@ def train(agent,game):
     for i in range(0,EPOCH):
         # render the game play for every 100 game plays
         if agent.n_games%100 == 0:
-            print("play :", agent.n_games, " win:",agent.n_wins,
-                  "win rate: ", agent.n_wins/agent.n_games)
+            plot_title = f"play :{agent.n_games}win:{agent.n_wins} win rate: {agent.n_wins/agent.n_games}"
+            plt.title(plot_title)
+            print(plot_title)
             # TODO: code to save plots
-            filename = "figures/fig_"+str(i%100)+"th_100episode"
+            filename = f"fig{i//100}_tracePlot.png"
+            folder_path = '.\\figures'
+            filename = os.path.join(folder_path,filename)
             plt.savefig(filename,format = 'png')
         # call helper function for a single game play
         win = game_loop_AI(game,agent)
@@ -160,7 +165,7 @@ def model_play(agent_trained,game):
 # there is some problem with time updating that I need to look into.
 # wired, its fine with training+rendering
 if __name__ == '__main__':
-    agent = Agent(6,5)
+    agent = Agent(3,5)
     game = WaterMazeAI()
     agent_trained, trajectory = train(agent,game)
     #game.reset()
