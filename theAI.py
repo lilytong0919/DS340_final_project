@@ -13,7 +13,6 @@ import torch
 from collections import deque # some sort of data structure, if I can copy then why not
 # the improtant ones
 from WaterMazeAI import WaterMazeAI, MOVES, WIDTH
-from Snakegame import SnakeGameAI, Direction, Point
 from theModel import Linear_QNet, QTrainer
 import matplotlib
 import matplotlib.pyplot as plt
