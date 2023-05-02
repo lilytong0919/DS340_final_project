@@ -254,6 +254,7 @@ def validate(agent,game):
 if __name__ == '__main__':
     # get user input for render or not
     agent = Agent(2,2) # only allow turn or not turn
+    # I was thinking of adding this but this seems not nessecary.
     # while True:
     #     ui_r = input("Do you wish to render with pygame, \n please type t/f (true,false): ")
     #     if ui_r == 't':
