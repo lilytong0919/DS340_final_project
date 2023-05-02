@@ -25,6 +25,7 @@ class Linear_QNet(nn.Module):
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
+        # in case I forget, weights are changing through learning
         return self.layer3(x)
 
     def save(self, file_name='model.pth'):
@@ -68,18 +69,18 @@ class QTrainer:
             if not done[idx]:
                 Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
                 # TODO: Maybe I should check if the loss-function have a problem, see information here
+                # need to see what this is doing.
+                # print(self.model(next_state[idx]))
                 # https://medium.com/intro-to-artificial-intelligence/deep-q-network-dqn-applying-neural-network-as-a-functional-approximation-in-q-learning-6ffe3b0a9062
             target[idx][torch.argmax(action[idx]).item()] = Q_new
             # print(torch.argmax(action[idx]).item())
         # print("predict",pred,pred.size())
         # print("target", target,target.size())
-        # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
-        # pred.clone()
-        # preds[argmax(action)] = Q_new
         self.optimizer.zero_grad()
         loss = self.criterion(target, pred)
+        # print(loss) # loss function varies a lot.
         loss.backward()
 
         self.optimizer.step()
-        
+        return loss
 
