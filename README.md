@@ -26,3 +26,5 @@ WaterMazeAI.py: this includes the WaterMazeAI class, which setup the game enviro
 figures: the folder I used to save plotted figues in. Saving is disabled as I commented out those part in the submitted version. But this folder also cotains record of my past attempts, with semi-documented network settings (meaning I said in the file names what I did, and inconsistently include a .txt file that recorded the parameters)
 
 models: the folder I used to save trained models, its not worth looking, I stopped saving them. (For some unknown reason I haven't looked into every time I run a saved model it don't work. But also when I still tries to keep the models I trained they don't learn).
+
+interaction_with_chatGPT.pdf: the embarrassingly long conversation with chatGPT about how to write my project. It's so long that if I try to put the text directly into my paper appendex my paper becomes 41 pages long. So it is kept here.
